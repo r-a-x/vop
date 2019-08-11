@@ -1,0 +1,23 @@
+create Table users (
+    user_id INT NOT NULL IDENTITY(1,1),
+    name VARCHAR(255),
+    username VARCHAR(255),
+    password VARCHAR(255),
+    created_on DATETIME,
+    modified_on DATETIME,
+    PRIMARY KEY(username)
+);
+--review_params = ["title", "description", "videoUrl", "thumbnailUrl", "afLink", "username"]
+
+create Table reviews(
+    review_id INT NOT NULL IDENTITY(1,1),
+    title VARCHAR(255),
+    description text,
+    videoUrl VARCHAR(255),
+    thumbnailUrl VARCHAR(255),
+    afLink VARCHAR(255),
+    username VARCHAR(255),
+    created_on DATETIME,
+    modified_on DATETIME,
+    PRIMARY KEY(videoUrl)
+);

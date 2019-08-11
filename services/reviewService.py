@@ -1,7 +1,17 @@
 import json
-
+from marshmallow import Schema, fields
 from database import open_db_connection
-from services.userService import is_user_present
+from services.exceptionService import VOPException
+from services.userService import is_user_present, UserNotFoundException
+
+
+class ReviewSchema(Schema):
+    title = fields.String()
+    description = fields.String()
+    videoUrl = fields.String()
+    thumbnail = fields.String()
+    afLink = fields.String()
+    username = fields.String()
 
 
 # ["title", "description", "videoUrl", "thumbnailUrl", "afLink", "username"]
@@ -14,6 +24,13 @@ def insert_review(review):
                            , review['thumbnailUrl'], review['afLink'], review['username'])
         return json.dumps(review), 200
     else:
-        return json.dumps({
-            "error": "Please signup before posting the review",
-        }), 400
+        raise UserNotFoundException(review["username"])
+
+
+class ReviewAlreadyExistException(VOPException):
+    code = 422
+    name = "ReviewAlreadyExistException"
+    message = None
+
+    def __init__(self, video_url):
+        self.message = "A review with the same video already exist " + video_url

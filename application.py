@@ -1,107 +1,123 @@
 from flask import Flask, request
 from webargs import fields, flaskparser
-import json, os
-
-from services.reviewService import insert_review
-from services.userService import signup_user, login_user
+from services.exceptionService import RequiredParametersMissingException, ErrorSchema
+from services.reviewService import insert_review, ReviewAlreadyExistException
+from services.userService import signup_user, login_user, UserAlreadyExistException, UserNotFoundException, \
+    InvalidLoginDetailsException
+from flask_apispec import use_kwargs, marshal_with
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
+from flask_apispec.extension import FlaskApiSpec
 from video import get_video_feed
 
 app = Flask(__name__)
-
+app.config.update({
+    'APISPEC_SPEC': APISpec(
+        title='pets',
+        version='v1',
+        plugins=[MarshmallowPlugin()],
+    ),
+    'APISPEC_SWAGGER_URL': '/swagger/',
+})
+docs = FlaskApiSpec(app)
+# app.config.update(
+#     APISPEC_SWAGGER_URL='/swagger',
+#     APISPEC_SWAGGER_UI_URL='/swagger-ui'
+# )
+# docs = FlaskApiSpec(app)
 parser = flaskparser.FlaskParser()
 
 
-class CustomError(Exception):
-    pass
-
-
 @parser.error_handler
-def handle_error(error, req, schema, status_code, headers):
-    print(error, req, schema, status_code, headers)
-    return {}, 200
-    # raise CustomError(error.messages)
+def handle_error(error, req, schema, code, headers):
+    raise RequiredParametersMissingException("Certain parameters like """.join(error.messages.keys()) + 'are missing ')
 
 
-class CustomError(Exception):
-    pass
+@app.errorhandler(Exception)
+@app.errorhandler(RequiredParametersMissingException)
+@app.errorhandler(ReviewAlreadyExistException)
+@app.errorhandler(UserAlreadyExistException)
+@app.errorhandler(UserNotFoundException)
+@app.errorhandler(InvalidLoginDetailsException)
+@marshal_with(ErrorSchema, 500)
+def handle_error_util(error):
+    code = error.code
+    success = False
+    response = {
+        'success': success,
+        'error': {
+            'type': error.name,
+            'message': error.description
+        }
 
-
-def throw_error(code, success, message):
-    return json.dumps({
-        code: code,
-        success: success,
-        message: message
-    }), 500
-
-
-# "title": "string",
-# "description": "string",
-# "videourl": "String",
-# "thumbnailurl": "String",
-# "aflink": "string",
-# "uid": "string",
-# "username": "string"
-
-# review = {"title": fields.Str(required=True),
-#           "description": fields.Str(required=True),
-#           "videoUrl": fields.Str(required=True),
-#           "thumbnailUrl": fields.Str(required=True),
-#           "afLink": fields.Str(required=True),
-#           "username": fields.Str(required=True)}
+    }
+    return response, code
 
 
 @app.route("/")
 def hello():
-    return "Hello There!!"
+    return "Hello World!!"
 
 
-def check_for_params(request_json, params=[]):
-    for param in params:
-        if param not in request_json or request_json[param] is None:
-            return False, json.dumps({
-                "error": param + " is not present in the request"
-            }), 400
-    return True, None
+# def check_for_params(request_json, params=[]):
+#     for param in params:
+#         if param not in request_json or request_json[param] is None:
+#             return False, json.dumps({
+#                 "error": param + " is not present in the request"
+#             }), 400
+#     return True, None
 
 
-# Every user can create more than one
-review_params = ["title", "description", "videoUrl", "thumbnailUrl", "afLink", "username"]
+# review_params = ["title", "description", "videoUrl", "thumbnailUrl", "afLink", "username"]
+review_params = {
+    "title": fields.Str(required=True),
+    "description": fields.Str(required=True),
+    "videoUrl": fields.Str(required=True),
+    "thumbnailUrl": fields.Str(required=True),
+    "afLink": fields.Str(required=True),
+    "username": fields.Str(required=True)
+}
 
 
 @app.route("/review", methods=['POST'])
+@parser.use_args(review_params, locations=("json"))
 def review():
-    is_request_well_formed, response = check_for_params(request.json, review_params
-                                                        )
-    if not is_request_well_formed:
-        return response
     return insert_review(request.json)
+docs.register(review)
 
+# signup_params = ["username", "password", "name"]
+signup_params = {
+    "username": fields.Str(required=True),
+    "password": fields.Str(required=True),
+    "name": fields.Str(required=True)
+}
 
-signup_params = ["username", "password", "name"]
-
-
+# docs.register("review")
 @app.route("/signup", methods=['POST'])
-def signup():
-    is_request_well_formed, response = check_for_params(request.json, signup_params)
-    if not is_request_well_formed:
-        return response
-    return signup_user(request.json)
+@parser.use_args(signup_params, locations=('json'))
+# @marshal_with( code=200)
+def signup(args):
+    return signup_user(args)
 
 
-login_params = ["username", "password"]
+# login_params = ["username", "password"]
+
+login_params = {
+    "username": fields.Str(required=True),
+    "password": fields.Str(required=True)
+}
 
 
 @app.route("/login", methods=['POST'])
-def login():
-    is_request_well_formed, response = check_for_params(request.json, login_params)
-    if not is_request_well_formed:
-        return response
-    return login_user(request.json)
+@parser.use_args(login_params, locations=('json'))
+def login(args):
+    return login_user(args)
 
 
 @app.route("/feed")
 def feed():
-    return json.dumps(get_video_feed())
+    pass
+    # return json.dumps(get_video_feed())
 
 
 if __name__ == "__main__":
