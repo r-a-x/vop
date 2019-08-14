@@ -14,10 +14,11 @@ class ErrorSchema(Schema):
 class VOPException(Exception):
     code = 500
     name = "VOPException"
-    description = None
+    message = None
 
-    def __init__(self, description):
-        self.description = description
+    def __init__(self, message):
+        Exception.__init__(self, message)
+        self.message = message
 
 
 class RequiredParametersMissingException(VOPException):

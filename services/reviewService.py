@@ -1,17 +1,7 @@
 import json
-from marshmallow import Schema, fields
 from database import open_db_connection
 from services.exceptionService import VOPException
 from services.userService import is_user_present, UserNotFoundException
-
-
-class ReviewSchema(Schema):
-    title = fields.String()
-    description = fields.String()
-    videoUrl = fields.String()
-    thumbnail = fields.String()
-    afLink = fields.String()
-    username = fields.String()
 
 
 # ["title", "description", "videoUrl", "thumbnailUrl", "afLink", "username"]
@@ -22,9 +12,9 @@ def insert_review(review):
             cursor.execute('insert into reviews(title, description, videoUrl, thumbnailUrl, afLink, username)'
                            ' values(?, ?, ?, ?, ?, ?)', review['title'], review['description'], review['videoUrl']
                            , review['thumbnailUrl'], review['afLink'], review['username'])
-        return json.dumps(review), 200
+        return review, 200
     else:
-        raise UserNotFoundException(review["username"])
+        raise UserNotFoundException()
 
 
 class ReviewAlreadyExistException(VOPException):
