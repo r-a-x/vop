@@ -7,15 +7,14 @@ from services.reviewService import insert_review
 from services.userService import UserNotFoundException, signup_user, UserAlreadyExistException, \
     InvalidLoginDetailsException, login_user
 
+
+app = Flask(__name__)
 if os.environ.get('AZURE'):
     @property
     def specs_url(self):
         return url_for(self.endpoint('specs'), _external=True, _scheme='https')
-
-
     Api.specs_url = specs_url
 
-app = Flask(__name__)
 api = Api(app, version='1.0', title='VOP Api',
           description='A Basic VOP API',
           )
